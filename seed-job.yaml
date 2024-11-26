@@ -1,0 +1,50 @@
+# seed-job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-seed-job
+spec:
+  template:
+    spec:
+      containers:
+      - name: db-seed
+        image: postgres:13
+        command: ['psql']
+        args: 
+          - '-h'
+          - 'postgres'
+          - '-U'
+          - '$(POSTGRES_USER)'
+          - '-d'
+          - '$(POSTGRES_DB)'
+          - '-c'
+          - 'INSERT INTO books (id, title, rating) VALUES 
+             (''1'', ''The Go Programming Language'', 4.5),
+             (''2'', ''Clean Code'', 4.8),
+             (''3'', ''Design Patterns'', 4.2),
+             (''4'', ''Kubernetes in Action'', 4.6),
+             (''5'', ''Database Design'', 4.1)
+             ON CONFLICT (id) DO NOTHING;'
+        env:
+          - name: POSTGRES_USER
+            valueFrom:
+              secretKeyRef:
+                name: postgres-secrets
+                key: POSTGRES_USER
+          - name: POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: postgres-secrets
+                key: POSTGRES_PASSWORD
+          - name: POSTGRES_DB
+            valueFrom:
+              secretKeyRef:
+                name: postgres-secrets
+                key: POSTGRES_DB
+          - name: PGPASSWORD  # This is needed for psql to authenticate
+            valueFrom:
+              secretKeyRef:
+                name: postgres-secrets
+                key: POSTGRES_PASSWORD
+      restartPolicy: Never
+  backoffLimit: 4
